@@ -1,65 +1,292 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+
+function gcd(a: number, b: number): number {
+  if (a > b) [a, b] = [b, a];
+  while (a % b > 0) {
+    const temp = a % b;
+    a = b;
+    b = temp;
+  }
+  return b;
+}
+
+interface Triangle {
+  value: [number, number, number];
+  gcd: number;
+  rightIndex: number;
+}
+
+function generate(area: number): Triangle[] {
+  if (area % 6 !== 0 || area < 6) return [];
+
+  const resultSet = new Set<string>();
+  const x = Math.pow((area * area) / 3, 1 / 4);
+
+  for (let i = 1; i <= x; i++) {
+    const y = Math.pow((area * area) / 2 / i, 1 / 3);
+    for (let j = i; j <= y; j++) {
+      let z = Math.sqrt((i + j) * (i + j) + (4 * area * area) / i / j);
+      if (z !== Math.floor(z)) continue;
+      z = (-i - j + z) / 2;
+      if (z !== Math.floor(z)) continue;
+      const triple: [number, number, number] = [i + j, i + z, j + z].sort(
+        (a, b) => a - b,
+      ) as [number, number, number];
+      resultSet.add(JSON.stringify(triple));
+    }
+  }
+
+  return [...resultSet]
+    .map((s) => {
+      const value = JSON.parse(s) as [number, number, number];
+      const g = gcd(value[0], gcd(value[1], value[2]));
+      const rightIndex = value[0] ** 2 + value[1] ** 2 - value[2] ** 2;
+      return { value, gcd: g, rightIndex };
+    })
+    .sort((a, b) =>
+      a.value[0] !== b.value[0]
+        ? a.value[0] - b.value[0]
+        : a.value[1] !== b.value[1]
+          ? a.value[1] - b.value[1]
+          : a.value[2] - b.value[2],
+    );
+}
+
+function triangleKind(t: Triangle): "right" | "obtuse" | "acute" {
+  if (t.rightIndex === 0) return "right";
+  if (t.rightIndex < 0) return "obtuse";
+  return "acute";
+}
+
+// ── component ─────────────────────────────────────────────────────────────────
+
+export default function HeronianTriangles() {
+  const [input, setInput] = useState("");
+  const [result, setResult] = useState<{
+    area: number;
+    triangles: Triangle[];
+  } | null>(null);
+  const [shake, setShake] = useState(false);
+
+  function handleSubmit() {
+    const area = Number(input);
+    if (!area || area % 6 !== 0 || area < 6) {
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      return;
+    }
+    setResult({ area, triangles: generate(area) });
+    setInput("");
+  }
+
+  const primitiveCount =
+    result?.triangles.filter((t) => t.gcd === 1).length ?? 0;
+  const scaledCount = (result?.triangles.length ?? 0) - primitiveCount;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-mono">
+      {/* Header */}
+      <header className="border-b border-zinc-800 px-8 py-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-white">
+            HERONIAN △
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-zinc-500 text-xs mt-0.5 tracking-widest uppercase">
+            Integer-sided · Integer-area triangles
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="text-zinc-700 text-xs text-right hidden sm:block">
+          <div>A = √(s(s−a)(s−b)(s−c))</div>
+          <div className="mt-1 text-zinc-600">Heron's formula</div>
         </div>
+      </header>
+
+      {/* Main */}
+      <main className="max-w-2xl mx-auto px-6 py-12">
+        {/* Input card */}
+        <div className="border border-zinc-800 bg-zinc-900 p-6 mb-8">
+          <label className="block text-xs text-zinc-500 tracking-widest uppercase mb-3">
+            Target Area
+          </label>
+
+          <div className="flex gap-3">
+            <input
+              type="number"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              placeholder="e.g. 84"
+              className={`
+                flex-1 bg-zinc-950 border text-white text-lg px-4 py-3
+                placeholder-zinc-700 outline-none focus:border-amber-400
+                transition-colors
+                ${shake ? "border-red-500 animate-pulse" : "border-zinc-700"}
+              `}
+            />
+            <button
+              onClick={handleSubmit}
+              className="px-6 py-3 bg-amber-400 text-zinc-950 font-bold text-sm
+                         tracking-widest uppercase hover:bg-amber-300 transition-colors
+                         active:scale-95"
+            >
+              Solve
+            </button>
+          </div>
+
+          <p className="mt-3 text-zinc-600 text-xs">
+            Area must be a positive multiple of 6 (e.g. 6, 12, 24, 36, 60, 84 …)
+          </p>
+        </div>
+
+        {/* Results */}
+        {result && (
+          <div>
+            {/* Summary bar */}
+            <div className="flex items-center gap-6 mb-6 pb-4 border-b border-zinc-800">
+              <div>
+                <div className="text-xs text-zinc-500 uppercase tracking-widest">
+                  Area
+                </div>
+                <div className="text-3xl font-bold text-amber-400">
+                  {result.area}
+                </div>
+              </div>
+              <div className="w-px h-10 bg-zinc-800" />
+              <div>
+                <div className="text-xs text-zinc-500 uppercase tracking-widest">
+                  Total
+                </div>
+                <div className="text-3xl font-bold">
+                  {result.triangles.length}
+                </div>
+              </div>
+              <div className="w-px h-10 bg-zinc-800" />
+              <div>
+                <div className="text-xs text-emerald-500 uppercase tracking-widest">
+                  Primitive
+                </div>
+                <div className="text-xl font-bold text-emerald-400">
+                  {primitiveCount}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-pink-500 uppercase tracking-widest">
+                  Scaled
+                </div>
+                <div className="text-xl font-bold text-pink-400">
+                  {scaledCount}
+                </div>
+              </div>
+            </div>
+
+            {result.triangles.length === 0 ? (
+              <div className="text-center text-zinc-600 py-12 text-sm">
+                No Heronian triangles found for this area.
+              </div>
+            ) : (
+              <>
+                {/* Legend */}
+                <div className="flex flex-wrap gap-4 text-xs mb-4 text-zinc-500">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 bg-emerald-500 inline-block" />
+                    Primitive (gcd = 1)
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 bg-pink-500 inline-block" />
+                    Scaled (gcd &gt; 1)
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="underline underline-offset-2 decoration-zinc-500">
+                      underline
+                    </span>
+                    = obtuse
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-zinc-300">∎</span>= right angle
+                  </span>
+                </div>
+
+                {/* Table */}
+                <div className="border border-zinc-800 overflow-hidden">
+                  <div
+                    className="grid grid-cols-4 text-xs text-zinc-500 uppercase tracking-widest
+                                  bg-zinc-900 px-4 py-2 border-b border-zinc-800"
+                  >
+                    <span>#</span>
+                    <span className="col-span-2">Sides (a, b, c)</span>
+                    <span className="text-right">gcd / type</span>
+                  </div>
+
+                  {result.triangles.map((t, i) => {
+                    const kind = triangleKind(t);
+                    const isPrimitive = t.gcd === 1;
+
+                    return (
+                      <div
+                        key={i}
+                        className={`
+                          grid grid-cols-4 items-center px-4 py-3 text-sm
+                          border-b border-zinc-800 last:border-b-0
+                          hover:bg-zinc-800 transition-colors
+                        `}
+                      >
+                        {/* index */}
+                        <span className="text-zinc-600 tabular-nums">
+                          {i + 1}
+                        </span>
+
+                        {/* sides */}
+                        <span
+                          className={`
+                            col-span-2 font-bold tabular-nums
+                            ${isPrimitive ? "text-emerald-400" : "text-pink-400"}
+                            ${kind === "obtuse" ? "underline underline-offset-4 decoration-1" : ""}
+                          `}
+                        >
+                          {t.value[0]}, {t.value[1]}, {t.value[2]}
+                          {kind === "right" && (
+                            <span className="ml-1 text-zinc-300">∎</span>
+                          )}
+                        </span>
+
+                        {/* gcd / type badge */}
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="text-zinc-600 text-xs">
+                            {isPrimitive ? "prim" : `÷${t.gcd}`}
+                          </span>
+                          <span
+                            className={`
+                              text-xs px-1.5 py-0.5 border
+                              ${
+                                kind === "right"
+                                  ? "border-zinc-500 text-zinc-400"
+                                  : kind === "obtuse"
+                                    ? "border-orange-800 text-orange-500"
+                                    : "border-blue-900 text-blue-400"
+                              }
+                            `}
+                          >
+                            {kind}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-zinc-800 px-8 py-4 text-zinc-700 text-xs text-center">
+        Integer-sided triangles with integer area · Based on Heron's formula
+      </footer>
     </div>
   );
 }
