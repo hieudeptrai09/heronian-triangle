@@ -14,13 +14,7 @@ function gcd(a: number, b: number): number {
   return b;
 }
 
-interface Triangle {
-  value: [number, number, number];
-  gcd: number;
-  rightIndex: number;
-}
-
-function generate(area: number): Triangle[] {
+function generate(area: number): [number, number, number][] {
   if (area % 6 !== 0 || area < 6) return [];
 
   const resultSet = new Set<string>();
@@ -34,33 +28,81 @@ function generate(area: number): Triangle[] {
       z = (-i - j + z) / 2;
       if (z !== Math.floor(z)) continue;
       const triple: [number, number, number] = [i + j, i + z, j + z].sort(
-        (a, b) => a - b
+        (a, b) => a - b,
       ) as [number, number, number];
       resultSet.add(JSON.stringify(triple));
     }
   }
 
   return [...resultSet]
-    .map((s) => {
-      const value = JSON.parse(s) as [number, number, number];
-      const g = gcd(value[0], gcd(value[1], value[2]));
-      const rightIndex =
-        value[0] ** 2 + value[1] ** 2 - value[2] ** 2;
-      return { value, gcd: g, rightIndex };
-    })
+    .map((s) => JSON.parse(s) as [number, number, number])
     .sort((a, b) =>
-      a.value[0] !== b.value[0]
-        ? a.value[0] - b.value[0]
-        : a.value[1] !== b.value[1]
-        ? a.value[1] - b.value[1]
-        : a.value[2] - b.value[2]
+      a[0] !== b[0] ? a[0] - b[0] : a[1] !== b[1] ? a[1] - b[1] : a[2] - b[2],
     );
 }
 
-function triangleKind(t: Triangle): "right" | "obtuse" | "acute" {
-  if (t.rightIndex === 0) return "right";
-  if (t.rightIndex < 0) return "obtuse";
+function triangleKind(
+  t: [number, number, number],
+): "right" | "obtuse" | "acute" {
+  const rightIndex = t[0] * t[0] + t[1] * t[1] - t[2] * t[2];
+  if (rightIndex === 0) return "right";
+  if (rightIndex < 0) return "obtuse";
   return "acute";
+}
+
+type RightTriangle = [number, number, number]; // [height, leg, hypotenuse]
+
+interface AltitudeDecomposition {
+  base: number;
+  first: RightTriangle;
+  second: RightTriangle;
+}
+
+function analyze(
+  t: [number, number, number],
+  area: number,
+): AltitudeDecomposition | undefined {
+  // Only works on non-right, non-isosceles triangles
+  if (t[0] * t[0] + t[1] * t[1] - t[2] * t[2] === 0) return;
+  if (t[0] === t[1] || t[1] === t[2]) return;
+
+  let height = 0,
+    base = 0,
+    first = 0,
+    second = 0;
+
+  if ((2 * area) % t[0] === 0) {
+    base = t[0];
+    height = (2 * area) / t[0];
+    first = t[1];
+    second = t[2];
+  } else if ((2 * area) % t[1] === 0) {
+    base = t[1];
+    height = (2 * area) / t[1];
+    first = t[0];
+    second = t[2];
+  } else if ((2 * area) % t[2] === 0) {
+    base = t[2];
+    height = (2 * area) / t[2];
+    first = t[0];
+    second = t[1];
+  } else return;
+
+  const leg1 = Math.sqrt(first * first - height * height);
+  const leg2 = Math.sqrt(second * second - height * height);
+
+  // Only show if sub-triangles have integer legs
+  if (leg1 !== Math.floor(leg1) || leg2 !== Math.floor(leg2)) return;
+
+  return {
+    base,
+    first: [height, leg1, first],
+    second: [height, leg2, second],
+  };
+}
+
+function fmt(n: number) {
+  return Number.isInteger(n) ? n.toString() : n.toFixed(3);
 }
 
 // ── component ─────────────────────────────────────────────────────────────────
@@ -69,9 +111,10 @@ export default function HeronianTriangles() {
   const [input, setInput] = useState("");
   const [result, setResult] = useState<{
     area: number;
-    triangles: Triangle[];
+    triangles: [number, number, number][];
   } | null>(null);
   const [shake, setShake] = useState(false);
+  const [expanded, setExpanded] = useState<number | null>(null);
 
   function handleSubmit() {
     const area = Number(input);
@@ -81,10 +124,17 @@ export default function HeronianTriangles() {
       return;
     }
     setResult({ area, triangles: generate(area) });
+    setExpanded(null);
     setInput("");
   }
 
-  const primitiveCount = result?.triangles.filter((t) => t.gcd === 1).length ?? 0;
+  function toggleRow(i: number) {
+    setExpanded((prev) => (prev === i ? null : i));
+  }
+
+  const primitiveCount =
+    result?.triangles.filter((t) => gcd(t[0], gcd(t[1], t[2])) === 1).length ??
+    0;
   const scaledCount = (result?.triangles.length ?? 0) - primitiveCount;
 
   return (
@@ -113,7 +163,6 @@ export default function HeronianTriangles() {
             Target Area
           </label>
 
-          {/* Stack vertically on mobile, side-by-side on sm+ */}
           <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="number"
@@ -147,23 +196,39 @@ export default function HeronianTriangles() {
         {/* Results */}
         {result && (
           <div>
-            {/* Summary bar — 2×2 grid on mobile, single row on sm+ */}
+            {/* Summary bar */}
             <div className="grid grid-cols-2 sm:flex sm:items-center sm:gap-6 gap-4 mb-6 pb-4 border-b border-zinc-800">
               <div>
-                <div className="text-xs text-zinc-500 uppercase tracking-widest">Area</div>
-                <div className="text-3xl font-bold text-amber-400">{result.area}</div>
+                <div className="text-xs text-zinc-500 uppercase tracking-widest">
+                  Area
+                </div>
+                <div className="text-3xl font-bold text-amber-400">
+                  {result.area}
+                </div>
               </div>
               <div>
-                <div className="text-xs text-zinc-500 uppercase tracking-widest">Total</div>
-                <div className="text-3xl font-bold">{result.triangles.length}</div>
+                <div className="text-xs text-zinc-500 uppercase tracking-widest">
+                  Total
+                </div>
+                <div className="text-3xl font-bold">
+                  {result.triangles.length}
+                </div>
               </div>
               <div>
-                <div className="text-xs text-emerald-500 uppercase tracking-widest">Primitive</div>
-                <div className="text-2xl font-bold text-emerald-400">{primitiveCount}</div>
+                <div className="text-xs text-emerald-500 uppercase tracking-widest">
+                  Primitive
+                </div>
+                <div className="text-2xl font-bold text-emerald-400">
+                  {primitiveCount}
+                </div>
               </div>
               <div>
-                <div className="text-xs text-pink-500 uppercase tracking-widest">Scaled</div>
-                <div className="text-2xl font-bold text-pink-400">{scaledCount}</div>
+                <div className="text-xs text-pink-500 uppercase tracking-widest">
+                  Scaled
+                </div>
+                <div className="text-2xl font-bold text-pink-400">
+                  {scaledCount}
+                </div>
               </div>
             </div>
 
@@ -184,20 +249,23 @@ export default function HeronianTriangles() {
                     Scaled (gcd &gt; 1)
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="underline underline-offset-2 decoration-zinc-500">underline</span>
+                    <span className="underline underline-offset-2 decoration-zinc-500">
+                      underline
+                    </span>
                     = obtuse
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="text-zinc-300">∎</span>
-                    = right angle
+                    <span className="text-zinc-300">∎</span>= right angle
                   </span>
                 </div>
 
                 {/* Table */}
                 <div className="border border-zinc-800 overflow-hidden">
-                  {/* Header row */}
-                  <div className="grid grid-cols-12 text-xs text-zinc-500 uppercase tracking-widest
-                                  bg-zinc-900 px-3 sm:px-4 py-2 border-b border-zinc-800">
+                  {/* Header */}
+                  <div
+                    className="grid grid-cols-12 text-xs text-zinc-500 uppercase tracking-widest
+                                  bg-zinc-900 px-3 sm:px-4 py-2 border-b border-zinc-800"
+                  >
                     <span className="col-span-1">#</span>
                     <span className="col-span-7">Sides (a, b, c)</span>
                     <span className="col-span-4 text-right">Type</span>
@@ -205,52 +273,134 @@ export default function HeronianTriangles() {
 
                   {result.triangles.map((t, i) => {
                     const kind = triangleKind(t);
-                    const isPrimitive = t.gcd === 1;
+                    const gcdT = gcd(t[0], gcd(t[1], t[2]));
+                    const isPrimitive = gcdT === 1;
+                    const isExpanded = expanded === i;
+                    const decomp = analyze(t, result.area);
+                    const canExpand = decomp !== undefined;
 
                     return (
                       <div
                         key={i}
-                        className="grid grid-cols-12 items-center px-3 sm:px-4 py-3
-                                   border-b border-zinc-800 last:border-b-0
-                                   hover:bg-zinc-800 transition-colors"
+                        className="border-b border-zinc-800 last:border-b-0"
                       >
-                        {/* index */}
-                        <span className="col-span-1 text-zinc-600 tabular-nums text-xs sm:text-sm">
-                          {i + 1}
-                        </span>
-
-                        {/* sides */}
-                        <span
+                        {/* Main row */}
+                        <div
+                          onClick={() => canExpand && toggleRow(i)}
                           className={`
-                            col-span-7 font-bold tabular-nums text-sm sm:text-base
-                            ${isPrimitive ? "text-emerald-400" : "text-pink-400"}
-                            ${kind === "obtuse" ? "underline underline-offset-4 decoration-1" : ""}
+                            grid grid-cols-12 items-center px-3 sm:px-4 py-3 transition-colors
+                            ${canExpand ? "cursor-pointer hover:bg-zinc-800" : "hover:bg-zinc-900"}
+                            ${isExpanded ? "bg-zinc-800" : ""}
                           `}
                         >
-                          {t.value[0]}, {t.value[1]}, {t.value[2]}
-                          {kind === "right" && (
-                            <span className="ml-1 text-zinc-300">∎</span>
-                          )}
-                        </span>
-
-                        {/* type badge + gcd */}
-                        <div className="col-span-4 flex items-center justify-end gap-1.5">
-                          <span className="text-zinc-600 text-xs hidden sm:inline">
-                            {isPrimitive ? "prim" : `÷${t.gcd}`}
+                          {/* index */}
+                          <span className="col-span-1 text-zinc-600 tabular-nums text-xs sm:text-sm">
+                            {i + 1}
                           </span>
+
+                          {/* sides */}
                           <span
                             className={`
-                              text-xs px-1.5 py-0.5 border
-                              ${kind === "right"
-                                ? "border-zinc-500 text-zinc-400"
-                                : kind === "obtuse"
-                                ? "border-orange-800 text-orange-500"
-                                : "border-blue-900 text-blue-400"}
+                              col-span-7 font-bold tabular-nums text-sm sm:text-base
+                              ${isPrimitive ? "text-emerald-400" : "text-pink-400"}
+                              ${kind === "obtuse" ? "underline underline-offset-4 decoration-1" : ""}
                             `}
                           >
-                            {kind}
+                            {t[0]}, {t[1]}, {t[2]}
+                            {kind === "right" && (
+                              <span className="ml-1 text-zinc-300">∎</span>
+                            )}
                           </span>
+
+                          {/* type + chevron */}
+                          <div className="col-span-4 flex items-center justify-end gap-1.5">
+                            <span className="text-zinc-600 text-xs hidden sm:inline">
+                              {isPrimitive ? "prim" : `÷${gcdT}`}
+                            </span>
+                            <span
+                              className={`
+                                text-xs px-1.5 py-0.5 border
+                                ${
+                                  kind === "right"
+                                    ? "border-zinc-500 text-zinc-400"
+                                    : kind === "obtuse"
+                                      ? "border-orange-800 text-orange-500"
+                                      : "border-blue-900 text-blue-400"
+                                }
+                              `}
+                            >
+                              {kind}
+                            </span>
+                            {canExpand && (
+                              <span className="text-zinc-600 text-xs select-none w-3 text-center">
+                                {isExpanded ? "▲" : "▼"}
+                              </span>
+                            )}
+                          </div>
                         </div>
+
+                        {/* Expanded panel: two sub-triangle lines */}
+                        {isExpanded &&
+                          decomp &&
+                          (() => {
+                            const g1 = gcd(
+                              decomp.first[0],
+                              gcd(decomp.first[1], decomp.first[2]),
+                            );
+                            const g2 = gcd(
+                              decomp.second[0],
+                              gcd(decomp.second[1], decomp.second[2]),
+                            );
+                            return (
+                              <div className="bg-zinc-900 border-t border-zinc-700 pl-8 sm:pl-10 pr-4 py-2 font-bold tabular-nums text-sm">
+                                {/* amber = shared height · zinc = unique leg · blue = hypotenuse */}
+                                <p className="py-0.5 flex items-baseline gap-2">
+                                  <span>
+                                    <span className="text-amber-400">
+                                      {fmt(decomp.first[0])}
+                                    </span>
+                                    <span className="text-zinc-500">, </span>
+                                    <span className="text-zinc-300">
+                                      {fmt(decomp.first[1])}
+                                    </span>
+                                    <span className="text-zinc-500">, </span>
+                                    <span className="text-sky-400">
+                                      {fmt(decomp.first[2])}
+                                    </span>
+                                  </span>
+                                  {g1 > 1 && (
+                                    <span className="text-xs font-normal text-zinc-500">
+                                      = {fmt(decomp.first[0] / g1)}{" "}
+                                      {fmt(decomp.first[1] / g1)}{" "}
+                                      {fmt(decomp.first[2] / g1)} × {g1}
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="py-0.5 flex items-baseline gap-2">
+                                  <span>
+                                    <span className="text-amber-400">
+                                      {fmt(decomp.second[0])}
+                                    </span>
+                                    <span className="text-zinc-500">, </span>
+                                    <span className="text-zinc-300">
+                                      {fmt(decomp.second[1])}
+                                    </span>
+                                    <span className="text-zinc-500">, </span>
+                                    <span className="text-sky-400">
+                                      {fmt(decomp.second[2])}
+                                    </span>
+                                  </span>
+                                  {g2 > 1 && (
+                                    <span className="text-xs font-normal text-zinc-500">
+                                      = {fmt(decomp.second[0] / g2)}{" "}
+                                      {fmt(decomp.second[1] / g2)}{" "}
+                                      {fmt(decomp.second[2] / g2)} × {g2}
+                                    </span>
+                                  )}
+                                </p>
+                              </div>
+                            );
+                          })()}
                       </div>
                     );
                   })}
@@ -267,4 +417,4 @@ export default function HeronianTriangles() {
       </footer>
     </div>
   );
-        }
+}
