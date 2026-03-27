@@ -34,7 +34,7 @@ function generate(area: number): Triangle[] {
       z = (-i - j + z) / 2;
       if (z !== Math.floor(z)) continue;
       const triple: [number, number, number] = [i + j, i + z, j + z].sort(
-        (a, b) => a - b,
+        (a, b) => a - b
       ) as [number, number, number];
       resultSet.add(JSON.stringify(triple));
     }
@@ -44,15 +44,16 @@ function generate(area: number): Triangle[] {
     .map((s) => {
       const value = JSON.parse(s) as [number, number, number];
       const g = gcd(value[0], gcd(value[1], value[2]));
-      const rightIndex = value[0] ** 2 + value[1] ** 2 - value[2] ** 2;
+      const rightIndex =
+        value[0] ** 2 + value[1] ** 2 - value[2] ** 2;
       return { value, gcd: g, rightIndex };
     })
     .sort((a, b) =>
       a.value[0] !== b.value[0]
         ? a.value[0] - b.value[0]
         : a.value[1] !== b.value[1]
-          ? a.value[1] - b.value[1]
-          : a.value[2] - b.value[2],
+        ? a.value[1] - b.value[1]
+        : a.value[2] - b.value[2]
     );
 }
 
@@ -83,16 +84,15 @@ export default function HeronianTriangles() {
     setInput("");
   }
 
-  const primitiveCount =
-    result?.triangles.filter((t) => t.gcd === 1).length ?? 0;
+  const primitiveCount = result?.triangles.filter((t) => t.gcd === 1).length ?? 0;
   const scaledCount = (result?.triangles.length ?? 0) - primitiveCount;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-mono">
       {/* Header */}
-      <header className="border-b border-zinc-800 px-8 py-6 flex items-center justify-between">
+      <header className="border-b border-zinc-800 px-4 sm:px-8 py-5 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
             HERONIAN △
           </h1>
           <p className="text-zinc-500 text-xs mt-0.5 tracking-widest uppercase">
@@ -106,22 +106,24 @@ export default function HeronianTriangles() {
       </header>
 
       {/* Main */}
-      <main className="max-w-2xl mx-auto px-6 py-12">
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {/* Input card */}
-        <div className="border border-zinc-800 bg-zinc-900 p-6 mb-8">
+        <div className="border border-zinc-800 bg-zinc-900 p-4 sm:p-6 mb-8">
           <label className="block text-xs text-zinc-500 tracking-widest uppercase mb-3">
             Target Area
           </label>
 
-          <div className="flex gap-3">
+          {/* Stack vertically on mobile, side-by-side on sm+ */}
+          <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="number"
+              inputMode="numeric"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               placeholder="e.g. 84"
               className={`
-                flex-1 bg-zinc-950 border text-white text-lg px-4 py-3
+                w-full bg-zinc-950 border text-white text-lg px-4 py-3
                 placeholder-zinc-700 outline-none focus:border-amber-400
                 transition-colors
                 ${shake ? "border-red-500 animate-pulse" : "border-zinc-700"}
@@ -129,9 +131,9 @@ export default function HeronianTriangles() {
             />
             <button
               onClick={handleSubmit}
-              className="px-6 py-3 bg-amber-400 text-zinc-950 font-bold text-sm
+              className="w-full sm:w-auto px-8 py-3 bg-amber-400 text-zinc-950 font-bold text-sm
                          tracking-widest uppercase hover:bg-amber-300 transition-colors
-                         active:scale-95"
+                         active:scale-95 whitespace-nowrap"
             >
               Solve
             </button>
@@ -145,41 +147,23 @@ export default function HeronianTriangles() {
         {/* Results */}
         {result && (
           <div>
-            {/* Summary bar */}
-            <div className="flex items-center gap-6 mb-6 pb-4 border-b border-zinc-800">
+            {/* Summary bar — 2×2 grid on mobile, single row on sm+ */}
+            <div className="grid grid-cols-2 sm:flex sm:items-center sm:gap-6 gap-4 mb-6 pb-4 border-b border-zinc-800">
               <div>
-                <div className="text-xs text-zinc-500 uppercase tracking-widest">
-                  Area
-                </div>
-                <div className="text-3xl font-bold text-amber-400">
-                  {result.area}
-                </div>
-              </div>
-              <div className="w-px h-10 bg-zinc-800" />
-              <div>
-                <div className="text-xs text-zinc-500 uppercase tracking-widest">
-                  Total
-                </div>
-                <div className="text-3xl font-bold">
-                  {result.triangles.length}
-                </div>
-              </div>
-              <div className="w-px h-10 bg-zinc-800" />
-              <div>
-                <div className="text-xs text-emerald-500 uppercase tracking-widest">
-                  Primitive
-                </div>
-                <div className="text-xl font-bold text-emerald-400">
-                  {primitiveCount}
-                </div>
+                <div className="text-xs text-zinc-500 uppercase tracking-widest">Area</div>
+                <div className="text-3xl font-bold text-amber-400">{result.area}</div>
               </div>
               <div>
-                <div className="text-xs text-pink-500 uppercase tracking-widest">
-                  Scaled
-                </div>
-                <div className="text-xl font-bold text-pink-400">
-                  {scaledCount}
-                </div>
+                <div className="text-xs text-zinc-500 uppercase tracking-widest">Total</div>
+                <div className="text-3xl font-bold">{result.triangles.length}</div>
+              </div>
+              <div>
+                <div className="text-xs text-emerald-500 uppercase tracking-widest">Primitive</div>
+                <div className="text-2xl font-bold text-emerald-400">{primitiveCount}</div>
+              </div>
+              <div>
+                <div className="text-xs text-pink-500 uppercase tracking-widest">Scaled</div>
+                <div className="text-2xl font-bold text-pink-400">{scaledCount}</div>
               </div>
             </div>
 
@@ -190,35 +174,33 @@ export default function HeronianTriangles() {
             ) : (
               <>
                 {/* Legend */}
-                <div className="flex flex-wrap gap-4 text-xs mb-4 text-zinc-500">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-emerald-500 inline-block" />
+                <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs mb-4 text-zinc-500">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 bg-emerald-500 inline-block flex-shrink-0" />
                     Primitive (gcd = 1)
                   </span>
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-pink-500 inline-block" />
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 bg-pink-500 inline-block flex-shrink-0" />
                     Scaled (gcd &gt; 1)
                   </span>
-                  <span className="flex items-center gap-2">
-                    <span className="underline underline-offset-2 decoration-zinc-500">
-                      underline
-                    </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="underline underline-offset-2 decoration-zinc-500">underline</span>
                     = obtuse
                   </span>
-                  <span className="flex items-center gap-2">
-                    <span className="text-zinc-300">∎</span>= right angle
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-zinc-300">∎</span>
+                    = right angle
                   </span>
                 </div>
 
                 {/* Table */}
                 <div className="border border-zinc-800 overflow-hidden">
-                  <div
-                    className="grid grid-cols-4 text-xs text-zinc-500 uppercase tracking-widest
-                                  bg-zinc-900 px-4 py-2 border-b border-zinc-800"
-                  >
-                    <span>#</span>
-                    <span className="col-span-2">Sides (a, b, c)</span>
-                    <span className="text-right">gcd / type</span>
+                  {/* Header row */}
+                  <div className="grid grid-cols-12 text-xs text-zinc-500 uppercase tracking-widest
+                                  bg-zinc-900 px-3 sm:px-4 py-2 border-b border-zinc-800">
+                    <span className="col-span-1">#</span>
+                    <span className="col-span-7">Sides (a, b, c)</span>
+                    <span className="col-span-4 text-right">Type</span>
                   </div>
 
                   {result.triangles.map((t, i) => {
@@ -228,21 +210,19 @@ export default function HeronianTriangles() {
                     return (
                       <div
                         key={i}
-                        className={`
-                          grid grid-cols-4 items-center px-4 py-3 text-sm
-                          border-b border-zinc-800 last:border-b-0
-                          hover:bg-zinc-800 transition-colors
-                        `}
+                        className="grid grid-cols-12 items-center px-3 sm:px-4 py-3
+                                   border-b border-zinc-800 last:border-b-0
+                                   hover:bg-zinc-800 transition-colors"
                       >
                         {/* index */}
-                        <span className="text-zinc-600 tabular-nums">
+                        <span className="col-span-1 text-zinc-600 tabular-nums text-xs sm:text-sm">
                           {i + 1}
                         </span>
 
                         {/* sides */}
                         <span
                           className={`
-                            col-span-2 font-bold tabular-nums
+                            col-span-7 font-bold tabular-nums text-sm sm:text-base
                             ${isPrimitive ? "text-emerald-400" : "text-pink-400"}
                             ${kind === "obtuse" ? "underline underline-offset-4 decoration-1" : ""}
                           `}
@@ -253,21 +233,19 @@ export default function HeronianTriangles() {
                           )}
                         </span>
 
-                        {/* gcd / type badge */}
-                        <div className="flex items-center justify-end gap-2">
-                          <span className="text-zinc-600 text-xs">
+                        {/* type badge + gcd */}
+                        <div className="col-span-4 flex items-center justify-end gap-1.5">
+                          <span className="text-zinc-600 text-xs hidden sm:inline">
                             {isPrimitive ? "prim" : `÷${t.gcd}`}
                           </span>
                           <span
                             className={`
                               text-xs px-1.5 py-0.5 border
-                              ${
-                                kind === "right"
-                                  ? "border-zinc-500 text-zinc-400"
-                                  : kind === "obtuse"
-                                    ? "border-orange-800 text-orange-500"
-                                    : "border-blue-900 text-blue-400"
-                              }
+                              ${kind === "right"
+                                ? "border-zinc-500 text-zinc-400"
+                                : kind === "obtuse"
+                                ? "border-orange-800 text-orange-500"
+                                : "border-blue-900 text-blue-400"}
                             `}
                           >
                             {kind}
@@ -284,9 +262,9 @@ export default function HeronianTriangles() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-800 px-8 py-4 text-zinc-700 text-xs text-center">
+      <footer className="border-t border-zinc-800 px-4 sm:px-8 py-4 text-zinc-700 text-xs text-center">
         Integer-sided triangles with integer area · Based on Heron's formula
       </footer>
     </div>
   );
-}
+        }
