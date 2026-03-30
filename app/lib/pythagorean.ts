@@ -30,6 +30,14 @@ function primeFactorize(p: number): PrimeFactors {
   return result;
 }
 
+function getDivisors(n: number): number[] {
+  let result = [];
+  for(let i = 1; i <= n; i++) {
+    if(n % i === 0) result.push(i)
+  }
+  return result[]
+}
+
 function powerAndMod(base: number, exp: number, mod: number): number {
   if (exp === 1) return base % mod;
   if (exp % 2 === 1) {
@@ -65,9 +73,9 @@ function primeSeparate(p: number): GaussianPair {
   return [a, b];
 }
 
-function hypotenuseSeparate(n: number): Set<string> | null {
+function primitiveSeparate(n: number): Set<string> | null {
   const primes = primeFactorize(n);
-  if (primes.two.length > 0 || primes.nonfermat.length > 0) return null;
+  if (n < 5 || primes.two.length > 0 || primes.nonfermat.length > 0) return null;
   const ingredients: string[] = [];
   let results = new Set<string>();
   for (let i = 0; i < primes.fermat.length; i++) {
@@ -104,6 +112,23 @@ function hypotenuseSeparate(n: number): Set<string> | null {
   return results;
 }
 
+function hypotenuseGenerate(n:number): Triple[] {
+  let result: Triple[] = [];
+  let divisors = getDivisors(n)
+  for(let i = 0; i < divisors.length; i++) {
+    let temp = primitiveSeparate(divisors[i]);
+    if(temp) {
+      let values = temp.values();
+      for(let value of values) {
+        let valueTemp = JSON.parse(value);
+        let triangle = hypotenuseTriple(valueTemp[0], valueTemp[1], valueTemp[2]);
+        result.push([triangle[0]*n/divisors[i], triangle[1]*n/divisors[i], triangle[2]*n/divisors[i]])
+      }
+    }
+  }
+  return result.sort((a,b) => a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1]);
+}
+
 function hypotenuseTriple(a: number, b: number): Triple {
   const sorted = [Math.abs(a * a - b * b), 2 * a * b, a * a + b * b].sort(
     (x, y) => x - y,
@@ -113,18 +138,7 @@ function hypotenuseTriple(a: number, b: number): Triple {
 
 export function computeTriples(input: string): ComputeResult {
   const p = parseInt(input, 10);
-  if (isNaN(p) || p < 5) return { error: true };
-  const separation = hypotenuseSeparate(p);
-  if (!separation) {
-    return {
-      error: true,
-    };
+  return {
+    triple: hypotenuseGenerate(p)
   }
-  const triples: Triple[] = [];
-  for (const value of separation.values()) {
-    const [m, n] = JSON.parse(value) as GaussianPair;
-    if (gcd(m, n) > 1) continue;
-    triples.push(hypotenuseTriple(m, n));
-  }
-  return { triples };
 }
