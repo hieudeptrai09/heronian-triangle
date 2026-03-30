@@ -121,7 +121,7 @@ function hypotenuseGenerate(n:number): Triple[] {
       let values = temp.values();
       for(let value of values) {
         let valueTemp = JSON.parse(value);
-        let triangle = hypotenuseTriple(valueTemp[0], valueTemp[1], valueTemp[2]);
+        let triangle = hypotenuseTriple(valueTemp[0], valueTemp[1]);
         result.push([triangle[0]*n/divisors[i], triangle[1]*n/divisors[i], triangle[2]*n/divisors[i]])
       }
     }
