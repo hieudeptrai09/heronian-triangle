@@ -18,17 +18,13 @@ export function PythagoreanTab() {
 
   function handleGenerate(): void {
     const p = parseInt(input, 10);
-    if (isNaN(p) || p < 5) {
+    if (isNaN(p) || p < 1) {
       triggerShake();
       return;
     }
     const out = computeTriples(input);
-    if (out.error) {
-      triggerShake();
-      return;
-    }
     setSubmitted(true);
-    setTriples(out.triples ?? null);
+    setTriples(out.triples ?? []);
   }
 
   return (
@@ -41,18 +37,12 @@ export function PythagoreanTab() {
           Pythagorean Triple Generator
         </h2>
         <p className="mt-3 text-zinc-400 text-sm leading-relaxed">
-          Enter a hypotenuse candidate — a product of Pythagorean primes (≡ 1
-          mod 4). Decomposes into all primitive Pythagorean triples via Gaussian
-          integers.
+          Enter a hypotenuse. Generates all Pythagorean triples with that hypotenuse
+          via Gaussian integer decomposition of its divisors.
         </p>
       </div>
 
-      <PythagoreanInput
-        value={input}
-        onChange={setInput}
-        onSubmit={handleGenerate}
-        shake={shake}
-      />
+      <PythagoreanInput value={input} onChange={setInput} onSubmit={handleGenerate} shake={shake} />
 
       {submitted && triples && <PythagoreanResults triples={triples} />}
     </div>
