@@ -139,6 +139,6 @@ function hypotenuseTriple(a: number, b: number): Triple {
 export function computeTriples(input: string): ComputeResult {
   const p = parseInt(input, 10);
   return {
-    triple: hypotenuseGenerate(p)
+    triples: hypotenuseGenerate(p)
   }
 }
