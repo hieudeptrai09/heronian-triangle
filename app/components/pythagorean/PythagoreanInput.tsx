@@ -7,12 +7,7 @@ interface PythagoreanInputProps {
   shake: boolean;
 }
 
-export function PythagoreanInput({
-  value,
-  onChange,
-  onSubmit,
-  shake,
-}: PythagoreanInputProps) {
+export function PythagoreanInput({ value, onChange, onSubmit, shake }: PythagoreanInputProps) {
   return (
     <div className="border border-zinc-800 bg-zinc-900 p-4 sm:p-6 mb-8 rounded-lg">
       <label className="block text-xs text-zinc-500 tracking-widest uppercase mb-3 font-mono">
@@ -42,8 +37,7 @@ export function PythagoreanInput({
         </button>
       </div>
       <p className="mt-3 text-zinc-600 text-xs font-mono">
-        Must be a product of Pythagorean primes (≡ 1 mod 4), e.g. 5, 13, 25, 65,
-        325 …
+        Any positive integer, e.g. 5, 10, 13, 25, 65 …
       </p>
     </div>
   );
