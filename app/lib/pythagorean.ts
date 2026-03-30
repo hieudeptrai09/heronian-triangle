@@ -115,7 +115,7 @@ function primitiveSeparate(n: number): Set<string> | null {
 function hypotenuseGenerate(n:number): Triple[] {
   let result: Triple[] = [];
   let divisors = getDivisors(n)
-  for(let i = 0; i < divisors.length; i++) {
+  for(let i = 1; i < divisors.length; i++) {
     let temp = primitiveSeparate(divisors[i]);
     if(temp) {
       let values = temp.values();
