@@ -115,13 +115,14 @@ function primitiveSeparate(n: number): Set<string> | null {
 function hypotenuseGenerate(n:number): Triple[] {
   let result: Triple[] = [];
   let divisors = getDivisors(n)
-  for(let i = 1; i < divisors.length; i++) {
+  for(let i = 0; i < divisors.length; i++) {
     let temp = primitiveSeparate(divisors[i]);
     if(temp) {
       let values = temp.values();
       for(let value of values) {
         let valueTemp = JSON.parse(value);
         let triangle = hypotenuseTriple(valueTemp[0], valueTemp[1]);
+        if(triangle[0] === 0 || triangle[1] === 0 || triangle[2] === 0) continue;
         result.push([triangle[0]*n/divisors[i], triangle[1]*n/divisors[i], triangle[2]*n/divisors[i]])
       }
     }
